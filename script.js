@@ -407,7 +407,7 @@ async function searchGoogleBooks() {
   DOM.gbResults.innerHTML = '';
   DOM.gbLoading.style.display = 'flex';
 
-  const apiKey = Store.getApiKey();
+  const apiKey = Store.getApiKey() || 'AIzaSyD2Gnaq2F3Dxlnx6Kzqs3QaOSMCj4lJ7K0';
   const params = new URLSearchParams({ q: query, maxResults: '12' });
   if (apiKey) params.append('key', apiKey);
 
