@@ -1,0 +1,25 @@
+{
+  "name": "textliby",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TextLiby web app",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "nodemon server/index.js",
+    "start": "node server/index.js",
+    "migrate": "node server/run-migrations.js",
+    "check": "node --check server/index.js && node --check public/script.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "helmet": "^8.1.0",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

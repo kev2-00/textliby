@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TextLiby | Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/auth.css" />
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-hero">
+      <div class="auth-brand">
+        <div class="auth-brand-icon">📚</div>
+        <div class="auth-brand-copy">
+          <strong>TextLiby</strong>
+          <span>Your Reading Vault</span>
+        </div>
+      </div>
+
+      <h2 class="auth-title">Welcome to Your Book Shelf.</h2>
+      <p class="auth-subtitle">
+        Keep your books synced And manage your library from anywhere.
+      </p>
+
+      <ul class="auth-points">
+        <li>Your Own Personal Library</li>
+        <li>Search and save books from Google Books</li>
+        <li>One Tap and takes you where to Buy</li>
+        <li>Track unread, reading, and finished titles</li>
+      </ul>
+    </section>
+
+    <section class="auth-card">
+      <h1>Sign in</h1>
+      <p>Use your email and password to access your TextLiby account.</p>
+
+      <div class="auth-error" data-auth-error></div>
+
+      <form class="auth-form" data-mode="login" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+
+        <button class="auth-submit" type="submit">Sign in</button>
+      </form>
+
+      <div class="auth-divider">or</div>
+
+      <div class="auth-oauth">
+        <button class="oauth-btn" type="button" data-oauth-placeholder>Continue with Google</button>
+        <button class="oauth-btn" type="button" data-oauth-placeholder>Continue with Apple</button>
+      </div>
+
+      <p class="auth-note">
+        OAuth buttons are shown here for the future flow. Real Google and Apple sign-in requires provider app setup and never asks users for their provider password inside this app.
+      </p>
+
+      <p class="auth-switch">
+        New here? <a href="/signup">Create an account</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/auth.js"></script>
+</body>
+</html>

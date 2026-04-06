@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="TextLiby — your personal student book tracker. Search, save, and manage textbooks and novels." />
+  <title>TextLiby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ░░ BACKGROUND GRAIN ░░ -->
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="sidebar-icon">📚</span>
+      <div>
+        <div class="sidebar-title">TextLiby</div>
+        <div class="sidebar-sub">Your Readings</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-filter="all">
+        <span class="nav-icon">◈</span> All Books
+        <span class="nav-badge" id="nav-all">0</span>
+      </button>
+      <button class="nav-item" data-filter="unread">
+        <span class="nav-icon">○</span> Unread
+        <span class="nav-badge" id="nav-unread">0</span>
+      </button>
+      <button class="nav-item" data-filter="reading">
+        <span class="nav-icon">◑</span> Reading
+        <span class="nav-badge" id="nav-reading">0</span>
+      </button>
+      <button class="nav-item" data-filter="read">
+        <span class="nav-icon">●</span> Finished
+        <span class="nav-badge" id="nav-read">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" data-filter="textbook">
+        <span class="nav-icon">🎓</span> Textbooks
+        <span class="nav-badge" id="nav-textbook">0</span>
+      </button>
+      <button class="nav-item" data-filter="novel">
+        <span class="nav-icon">✦</span> Novels
+        <span class="nav-badge" id="nav-novel">0</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-actions">
+      <button class="sidebar-btn" id="export-btn" title="Export library as JSON">
+        ↓ Export JSON
+      </button>
+      <button class="sidebar-btn" id="import-btn" title="Import library from JSON">
+        ↑ Import JSON
+      </button>
+      <input type="file" id="import-file" accept=".json" style="display:none" />
+    </div>
+
+    <button class="settings-trigger" id="settings-btn" title="Settings">
+      Settings
+    </button>
+  </aside>
+
+  <!-- ═══════════════════════════════════════
+       MAIN
+  ════════════════════════════════════════════ -->
+  <div class="layout">
+
+    <!-- ── TOP BAR ──────────────────────────── -->
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+
+      <div class="topbar-search">
+        <span class="topbar-search-icon">🔍</span>
+        <input type="text" id="lib-search" placeholder="Search your library…" autocomplete="off" />
+      </div>
+
+      <div class="topbar-right">
+        <button class="btn btn-brass" id="add-trigger">
+          <span>+ Add Book</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── PAGE CONTENT ──────────────────────── -->
+    <main class="main-content">
+
+      <div class="migration-banner" id="migration-banner" style="display:none">
+        <div class="migration-copy">
+          <strong>We found a local library on this browser.</strong>
+          <span id="migration-count">Import your saved books into this account with one click.</span>
+        </div>
+        <div class="migration-actions">
+          <button class="btn btn-brass" id="migration-import-btn">Import Local Books</button>
+          <button class="btn btn-ghost-sm" id="migration-dismiss-btn">Dismiss</button>
+        </div>
+      </div>
+
+      <!-- STATS ROW -->
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total">0</div>
+          <div class="stat-label">Total Books</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-read">0</div>
+          <div class="stat-label">Finished</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-reading">0</div>
+          <div class="stat-label">Reading</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-unread">0</div>
+          <div class="stat-label">To Read</div>
+        </div>
+      </div>
+
+      <!-- SECTION TITLE -->
+      <div class="section-header">
+        <h1 class="section-title" id="section-title">All Books</h1>
+        <div class="view-toggle">
+          <button class="view-btn active" id="view-grid" title="Grid view">⊞</button>
+          <button class="view-btn" id="view-list" title="List view">☰</button>
+        </div>
+      </div>
+
+      <!-- BOOK GRID / LIST -->
+      <div class="book-grid" id="book-grid">
+        <!-- populated by JS -->
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty-state" id="empty-state" style="display:none">
+        <div class="empty-icon">📚</div>
+        <h2>Your library is empty</h2>
+        <p>Click <strong>+ Add Book</strong> to search Google Books<br>and add your first title.</p>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       ADD BOOK DRAWER
+  ════════════════════════════════════════════ -->
+  <div class="overlay" id="add-overlay"></div>
+  <div class="drawer" id="add-drawer">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Add a Book</h2>
+      <button class="drawer-close" id="drawer-close">✕</button>
+    </div>
+
+    <!-- Google Books Search -->
+    <div class="drawer-search-row">
+      <div class="field-wrap">
+        <input type="text" id="gb-query" class="drawer-input"
+               placeholder="Search by title, author, or ISBN…" autocomplete="off" />
+      </div>
+      <button class="btn btn-brass" id="gb-search-btn">Search</button>
+    </div>
+
+    <!-- Category select -->
+    <div class="drawer-category-row">
+      <label class="field-label">Adding as</label>
+      <div class="pill-select" id="category-select">
+        <button class="pill-opt active" data-val="novel">Novel</button>
+        <button class="pill-opt" data-val="textbook">Textbook</button>
+      </div>
+    </div>
+
+    <!-- Search results -->
+    <div id="gb-loading" class="gb-loading" style="display:none">
+      <div class="spinner"></div>
+      <span>Searching Google Books…</span>
+    </div>
+    <div id="gb-results" class="gb-results"></div>
+
+    <!-- Divider -->
+    <div class="drawer-divider">
+      <span>or add manually</span>
+    </div>
+
+    <!-- Manual form -->
+    <div class="manual-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="field-label" for="m-title">Title *</label>
+          <input type="text" id="m-title" class="drawer-input" placeholder="Book title" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="m-author">Author</label>
+          <input type="text" id="m-author" class="drawer-input" placeholder="Author name" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="field-label" for="m-isbn">ISBN</label>
+          <input type="text" id="m-isbn" class="drawer-input" placeholder="978…" />
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="m-year">Year</label>
+          <input type="text" id="m-year" class="drawer-input" placeholder="2024" maxlength="4" />
+        </div>
+      </div>
+      <button class="btn btn-brass" id="manual-add-btn" style="width:100%;margin-top:4px">
+        Add to Library
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       BOOK DETAIL MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal-bg" id="detail-modal">
+    <div class="modal" id="detail-panel">
+      <button class="modal-close" id="detail-close">✕</button>
+      <div class="modal-cover-wrap">
+        <img id="d-cover" src="" alt="Cover" class="modal-cover" />
+        <div id="d-cover-placeholder" class="modal-cover-placeholder" style="display:none">📖</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-meta-row">
+          <span class="badge" id="d-category">novel</span>
+          <span class="badge badge-status" id="d-status">unread</span>
+        </div>
+        <h2 class="modal-title" id="d-title"></h2>
+        <p class="modal-author" id="d-author"></p>
+        <div class="modal-info">
+          <div class="info-item"><span class="info-label">ISBN</span><span id="d-isbn">—</span></div>
+          <div class="info-item"><span class="info-label">Publisher</span><span id="d-publisher">—</span></div>
+          <div class="info-item"><span class="info-label">Year</span><span id="d-year">—</span></div>
+          <div class="info-item"><span class="info-label">Added</span><span id="d-added">—</span></div>
+        </div>
+
+        <!-- Status cycling -->
+        <div class="modal-status-row">
+          <span class="field-label">My status</span>
+          <div class="pill-select" id="status-select">
+            <button class="pill-opt" data-val="unread">Unread</button>
+            <button class="pill-opt" data-val="reading">Reading</button>
+            <button class="pill-opt" data-val="read">Finished</button>
+          </div>
+        </div>
+
+        <!-- Rating -->
+        <div class="modal-rating-row">
+          <span class="field-label">Rating</span>
+          <div class="star-row" id="star-row">
+            <button class="star" data-val="1">★</button>
+            <button class="star" data-val="2">★</button>
+            <button class="star" data-val="3">★</button>
+            <button class="star" data-val="4">★</button>
+            <button class="star" data-val="5">★</button>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group" style="margin-top:16px">
+          <label class="field-label" for="d-notes">Notes</label>
+          <textarea id="d-notes" class="drawer-input" rows="3"
+                    placeholder="Your thoughts…" style="resize:vertical"></textarea>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="modal-actions">
+          <div class="buy-links">
+            <a class="btn-buy" id="buy-amazon" href="#" target="_blank" rel="noopener">🛒 Amazon</a>
+            <a class="btn-buy btn-buy-thrift" id="buy-thrift" href="#" target="_blank" rel="noopener">📦 ThriftBooks</a>
+            <a class="btn-buy btn-buy-google" id="buy-google" href="#" target="_blank" rel="noopener">🔗 Google Books</a>
+          </div>
+          <div class="modal-btn-row">
+            <button class="btn btn-save" id="d-save">Save Changes</button>
+            <button class="btn btn-delete" id="d-delete">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SETTINGS PANEL
+  ════════════════════════════════════════════ -->
+  <div class="modal-bg" id="settings-modal">
+    <div class="modal modal-sm">
+      <button class="modal-close" id="settings-close">X</button>
+      <h2 class="modal-title" style="margin-bottom: 20px;">Settings</h2>
+
+      <div class="form-group">
+        <label class="field-label">Signed in as</label>
+        <div class="settings-value" id="settings-user-email">Loading…</div>
+        <p class="field-hint">
+          Your library now loads from your account on the server.
+        </p>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="field-label">Library tools</label>
+        <p class="field-hint">
+          Export your books, import a backup into this account, or sign out from this browser.
+        </p>
+      </div>
+
+      <div class="settings-grid">
+        <button class="btn btn-ghost-sm" id="settings-export-btn">Export Books</button>
+        <button class="btn btn-ghost-sm" id="settings-import-btn">Import Books</button>
+      </div>
+
+      <div class="modal-btn-row" style="margin-top:24px">
+        <button class="btn btn-brass" id="settings-logout-btn">Log Out</button>
+        <button class="btn btn-ghost-sm" id="clear-data-btn">Clear All Data</button>
+      </div>
+
+      <p class="field-hint" style="margin-top:18px">
+        Delete account is coming later. For now, <strong>Clear All Data</strong> removes every book from this account only.
+      </p>
+    </div>
+  </div>
+  <!-- ═══════════════════════════════════════
+       DELETE CONFIRM MODAL
+  ════════════════════════════════════════════ -->
+  <div class="modal-bg" id="confirm-modal">
+    <div class="modal modal-sm">
+      <h2 class="modal-title" style="font-size:18px;margin-bottom:10px">Remove this book?</h2>
+      <p id="confirm-msg" style="color:var(--muted);font-size:14px;margin-bottom:24px;line-height:1.55"></p>
+      <div class="modal-btn-row">
+        <button class="btn btn-ghost-sm" id="confirm-cancel">Cancel</button>
+        <button class="btn btn-delete" id="confirm-ok">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       TOAST
+  ════════════════════════════════════════════ -->
+  <div id="toast" role="status" aria-live="polite">
+    <span id="toast-icon"></span>
+    <span id="toast-msg"></span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
