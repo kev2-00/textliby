@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
 const config = require('./config');
+const { pool, verifyDatabaseConnection } = require('./db');
 const authRoutes = require('./routes/auth');
 const booksRoutes = require('./routes/books');
 const googleBooksRoutes = require('./routes/googleBooks');
@@ -86,6 +87,86 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-app.listen(config.port, () => {
-  console.log(`TextLiby server listening on ${config.appBaseUrl}`);
+let server = null;
+
+let isShuttingDown = false;
+
+function closeServer() {
+  if (!server) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+async function shutdown(signal, exitCode = 0) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`Received ${signal}. Shutting down TextLiby...`);
+
+  try {
+    await closeServer();
+    await pool.end();
+  } catch (error) {
+    console.error('Shutdown failed:', error);
+    process.exitCode = 1;
+    process.exit(1);
+    return;
+  }
+
+  process.exitCode = exitCode;
+  process.exit(exitCode);
+}
+
+async function startServer() {
+  try {
+    await verifyDatabaseConnection();
+    console.log('PostgreSQL connection verified.');
+
+    server = app.listen(config.port, '0.0.0.0', () => {
+      console.log(`TextLiby server listening on port ${config.port} (${config.nodeEnv})`);
+    });
+  } catch (error) {
+    console.error('Failed to start TextLiby:', error);
+
+    try {
+      await pool.end();
+    } catch (shutdownError) {
+      console.error('Failed to close PostgreSQL pool after startup error:', shutdownError);
+    }
+
+    process.exit(1);
+  }
+}
+
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
 });
+
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught exception:', error);
+  void shutdown('uncaughtException', 1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+  void shutdown('unhandledRejection', 1);
+});
+
+void startServer();
