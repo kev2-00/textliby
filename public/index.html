@@ -17,6 +17,7 @@
   <!-- ═══════════════════════════════════════
        SIDEBAR
   ════════════════════════════════════════════ -->
+  <!-- Persistent navigation, filters, and account-level actions. -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <span class="sidebar-icon">📚</span>
@@ -78,6 +79,7 @@
   <!-- ═══════════════════════════════════════
        MAIN
   ════════════════════════════════════════════ -->
+  <!-- Main application shell for search, stats, and the active book collection. -->
   <div class="layout">
 
     <!-- ── TOP BAR ──────────────────────────── -->
@@ -99,6 +101,7 @@
     <!-- ── PAGE CONTENT ──────────────────────── -->
     <main class="main-content">
 
+      <!-- One-time prompt that migrates the old browser-only library into the signed-in account. -->
       <div class="migration-banner" id="migration-banner" style="display:none">
         <div class="migration-copy">
           <strong>We found a local library on this browser.</strong>
@@ -145,6 +148,7 @@
       </div>
 
       <!-- EMPTY STATE -->
+      <!-- Empty-state copy shown when the account or active filter has no visible books. -->
       <div class="empty-state" id="empty-state" style="display:none">
         <div class="empty-icon">📚</div>
         <h2>Your library is empty</h2>
@@ -157,6 +161,7 @@
   <!-- ═══════════════════════════════════════
        ADD BOOK DRAWER
   ════════════════════════════════════════════ -->
+  <!-- Slide-in workflow for searching Google Books or adding a book manually. -->
   <div class="overlay" id="add-overlay"></div>
   <div class="drawer" id="add-drawer">
     <div class="drawer-header">
@@ -225,6 +230,7 @@
   <!-- ═══════════════════════════════════════
        BOOK DETAIL MODAL
   ════════════════════════════════════════════ -->
+  <!-- Modal used to inspect a book, edit reading progress, and follow buy links. -->
   <div class="modal-bg" id="detail-modal">
     <div class="modal" id="detail-panel">
       <button class="modal-close" id="detail-close">✕</button>
@@ -294,6 +300,7 @@
   <!-- ═══════════════════════════════════════
        SETTINGS PANEL
   ════════════════════════════════════════════ -->
+  <!-- Account tools for export, import, logout, and bulk deletion. -->
   <div class="modal-bg" id="settings-modal">
     <div class="modal modal-sm">
       <button class="modal-close" id="settings-close">X</button>
@@ -332,6 +339,7 @@
   <!-- ═══════════════════════════════════════
        DELETE CONFIRM MODAL
   ════════════════════════════════════════════ -->
+  <!-- Reusable confirmation dialog for destructive actions like deleting books. -->
   <div class="modal-bg" id="confirm-modal">
     <div class="modal modal-sm">
       <h2 class="modal-title" style="font-size:18px;margin-bottom:10px">Remove this book?</h2>
@@ -346,6 +354,7 @@
   <!-- ═══════════════════════════════════════
        TOAST
   ════════════════════════════════════════════ -->
+  <!-- Toast status region for transient success, info, and error feedback. -->
   <div id="toast" role="status" aria-live="polite">
     <span id="toast-icon"></span>
     <span id="toast-msg"></span>

@@ -1,7 +1,9 @@
+<!-- Project summary -->
 # textliby
 
 TextLiby is a small Express + PostgreSQL app for tracking novels and textbooks.
 
+<!-- Local development setup -->
 ## Local setup
 
 1. Copy `.env.example` to `.env`.
@@ -10,6 +12,7 @@ TextLiby is a small Express + PostgreSQL app for tracking novels and textbooks.
 4. Run `node server/run-migrations.js`.
 5. Run `npm start`.
 
+<!-- Railway deployment behavior -->
 ## Railway deploy notes
 
 - `railway.json` tells Railway to:

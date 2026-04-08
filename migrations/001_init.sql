@@ -1,3 +1,4 @@
+-- Core user accounts used for login and ownership of all library data.
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
@@ -7,6 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
   CONSTRAINT users_email_lowercase CHECK (email = LOWER(email))
 );
 
+-- Browser sessions map a secure cookie token back to the signed-in user.
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -15,6 +17,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   revoked_at TIMESTAMPTZ
 );
 
+-- Books belong to a user and store both catalog metadata and reading progress.
 CREATE TABLE IF NOT EXISTS books (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -36,6 +39,7 @@ CREATE TABLE IF NOT EXISTS books (
   CONSTRAINT books_year_valid CHECK (year IS NULL OR (year BETWEEN 0 AND 9999))
 );
 
+-- Indexes keep the most common auth and library lookups fast.
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_books_user_id ON books(user_id);

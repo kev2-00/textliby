@@ -6,12 +6,14 @@
     return;
   }
 
+  // Browser storage keys used for remembered UI preferences and one-time migration prompts.
   const STORAGE_KEYS = {
     view: 'textliby_view',
     legacyBooks: 'textliby_books',
     migrationDismissed: 'textliby_migration_dismissed',
   };
 
+  // Human-friendly labels reused across navigation, badges, and empty states.
   const FILTER_TITLES = {
     all: 'All Books',
     unread: 'Unread',
@@ -32,6 +34,7 @@
     textbook: 'Textbook',
   };
 
+  // Central application state for the authenticated library experience.
   const state = {
     user: null,
     books: [],
@@ -50,6 +53,7 @@
     toastTimer: null,
   };
 
+  // Cache every interactive DOM node once so the rest of the file can work with stable references.
   const elements = {
     sidebar: document.getElementById('sidebar'),
     hamburger: document.getElementById('hamburger'),
@@ -137,11 +141,13 @@
     toastMessage: document.getElementById('toast-msg'),
   };
 
+  // Start the application once the page-specific DOM structure has been confirmed.
   initialize().catch((error) => {
     console.error(error);
     showToast(error.message || 'Something went wrong while loading your library.', 'error');
   });
 
+  // Bootstrap sequence: bind UI events, restore preferences, then load account data from the server.
   async function initialize() {
     bindEvents();
     applyViewMode();
@@ -151,6 +157,7 @@
     renderAll();
   }
 
+  // Wire up every sidebar, drawer, modal, and keyboard interaction in one place.
   function bindEvents() {
     elements.searchInput?.addEventListener('input', (event) => {
       state.search = event.target.value.trim().toLowerCase();
@@ -204,6 +211,12 @@
     elements.googleResults?.addEventListener('click', (event) => {
       const card = event.target.closest('[data-google-index]');
       if (!card) {
+        return;
+      }
+
+      const duplicateId = card.dataset.duplicateId || '';
+      if (duplicateId) {
+        focusExistingBook(duplicateId, 'That title is already in your library.');
         return;
       }
 
@@ -401,6 +414,7 @@
     });
   }
 
+  // Initial data loads that establish the signed-in user and their current library contents.
   async function loadCurrentUser() {
     const data = await apiGet('/api/auth/me');
     state.user = data.user;
@@ -412,6 +426,7 @@
     state.books = sortBooks(data.books || []);
   }
 
+  // Master render pass that keeps counts, titles, lists, banners, and modals in sync with state.
   function renderAll() {
     renderCounts();
     renderSectionTitle();
@@ -429,6 +444,7 @@
     }
   }
 
+  // Update sidebar counters and the dashboard stats row from the current library state.
   function renderCounts() {
     const counts = {
       all: state.books.length,
@@ -476,6 +492,7 @@
     }
   }
 
+  // Reflect the currently selected filter in the section heading.
   function renderSectionTitle() {
     if (!elements.sectionTitle) {
       return;
@@ -484,6 +501,7 @@
     elements.sectionTitle.textContent = FILTER_TITLES[state.filter] || FILTER_TITLES.all;
   }
 
+  // Render either the matching book cards or the appropriate empty state for the current view.
   function renderBooks() {
     const books = getVisibleBooks();
 
@@ -534,6 +552,7 @@
     }
   }
 
+  // Filtering helpers combine sidebar state with the free-text search box.
   function getVisibleBooks() {
     return state.books.filter((book) => matchesCurrentFilter(book) && matchesSearch(book));
   }
@@ -569,6 +588,7 @@
     return haystack.includes(state.search);
   }
 
+  // HTML template builders keep DOM rendering simple by returning escaped markup strings.
   function buildGridCard(book) {
     return `
       <article class="book-card status-${escapeAttr(book.status)}" data-book-id="${book.id}">
@@ -620,16 +640,30 @@
     return `<div class="${placeholderClassName}" aria-hidden="true">&#128214;</div>`;
   }
 
+  // Drawer helpers control the add-book side panel and reset any transient search/form state.
   function openAddDrawer() {
     elements.addOverlay?.classList.add('open');
     elements.addDrawer?.classList.add('open');
-    elements.queryInput?.focus();
+    syncScrollLock();
+
+    window.requestAnimationFrame(() => {
+      if (!elements.queryInput) {
+        return;
+      }
+
+      try {
+        elements.queryInput.focus({ preventScroll: true });
+      } catch (error) {
+        elements.queryInput.focus();
+      }
+    });
   }
 
   function closeAddDrawer() {
     elements.addOverlay?.classList.remove('open');
     elements.addDrawer?.classList.remove('open');
     resetAddDrawer();
+    syncScrollLock();
   }
 
   function isDrawerOpen() {
@@ -662,6 +696,7 @@
     setGoogleLoading(false);
   }
 
+  // Search Google Books through the server-side proxy, then stage the results for quick adding.
   async function searchGoogleBooks() {
     const query = elements.queryInput?.value.trim() || '';
     if (!query) {
@@ -684,6 +719,7 @@
     }
   }
 
+  // Lightweight rendering for the Google Books search results grid.
   function setGoogleLoading(isLoading) {
     if (elements.googleLoading) {
       elements.googleLoading.style.display = isLoading ? 'flex' : 'none';
@@ -701,9 +737,16 @@
     }
 
     elements.googleResults.innerHTML = items
-      .map(
-        (item, index) => `
-          <article class="gb-card" data-google-index="${index}">
+      .map((item, index) => {
+        const duplicate = findDuplicateBook(item);
+        const duplicateId = duplicate ? String(duplicate.id) : '';
+        const hintText = duplicate ? 'Already in library' : 'Click to add';
+        const hintClass = duplicate ? 'gb-add-hint duplicate' : 'gb-add-hint';
+
+        return `
+          <article class="gb-card${duplicate ? ' is-duplicate' : ''}" data-google-index="${index}" data-duplicate-id="${escapeAttr(
+            duplicateId
+          )}">
             ${
               item.thumbnail
                 ? `<img src="${escapeAttr(item.thumbnail)}" alt="Book cover" class="gb-card-thumb" loading="lazy" />`
@@ -712,17 +755,24 @@
             <div class="gb-card-body">
               <div class="gb-card-title">${escapeHtml(item.title || 'Unknown Title')}</div>
               <div class="gb-card-author">${escapeHtml(item.author || 'Unknown Author')}</div>
-              <div class="gb-add-hint">Click to add</div>
+              <div class="${hintClass}">${hintText}</div>
             </div>
           </article>
-        `
-      )
+        `;
+      })
       .join('');
   }
 
+  // Convert either a Google Books result or the manual form into the API payload used to create a book.
   async function addGoogleResult(index) {
     const item = state.googleResults[index];
     if (!item) {
+      return;
+    }
+
+    const duplicate = findDuplicateBook(item);
+    if (duplicate) {
+      focusExistingBook(duplicate.id, 'That title is already in your library.');
       return;
     }
 
@@ -762,10 +812,23 @@
       return;
     }
 
+    const duplicate = findDuplicateBook(payload);
+    if (duplicate) {
+      focusExistingBook(duplicate.id, 'That title is already in your library.');
+      return;
+    }
+
     await createBook(payload, 'Book added to your library.');
   }
 
+  // Persist a new book, merge it into local state, and refresh the visible UI.
   async function createBook(payload, successMessage) {
+    const duplicate = findDuplicateBook(payload);
+    if (duplicate) {
+      focusExistingBook(duplicate.id, 'That title is already in your library.');
+      return;
+    }
+
     try {
       const data = await apiPost('/api/books', payload);
       state.books = sortBooks([data.book, ...state.books]);
@@ -774,10 +837,19 @@
       showToast(successMessage, 'success');
     } catch (error) {
       console.error(error);
+
+      if (error.duplicateId) {
+        await refreshBooks();
+        renderAll();
+        focusExistingBook(error.duplicateId, error.message || 'That title is already in your library.');
+        return;
+      }
+
       showToast(error.message || 'Could not add that book.', 'error');
     }
   }
 
+  // Detail modal workflow for inspecting, editing, and deleting the currently selected book.
   function openDetailModal(bookId) {
     state.selectedBookId = bookId;
     const book = getSelectedBook();
@@ -855,6 +927,7 @@
     syncBuyLinks(book);
   }
 
+  // Keep status pills and star controls synchronized with the editable draft state.
   function syncDetailControls() {
     elements.detailStatusButtons.forEach((button) => {
       button.classList.toggle('active', button.dataset.val === state.detailDraft.status);
@@ -885,6 +958,7 @@
     }
   }
 
+  // Save the draft edits from the detail modal back to the server and update in-memory state.
   async function saveDetailChanges() {
     const book = getSelectedBook();
     if (!book) {
@@ -910,6 +984,7 @@
     }
   }
 
+  // Settings, export/import, and migration helpers keep account-level maintenance actions together.
   function syncSettingsUser() {
     if (!elements.settingsUserEmail) {
       return;
@@ -940,6 +1015,7 @@
     showToast('Library exported as JSON.', 'success');
   }
 
+  // Reuse the hidden file input from both the sidebar and settings modal.
   function triggerImportPicker() {
     elements.importFile?.click();
   }
@@ -961,14 +1037,15 @@
         throw new Error('That file did not contain any books to import.');
       }
 
-      await importBooksToAccount(books);
-      showToast(`Imported ${books.length} book${books.length === 1 ? '' : 's'}.`, 'success');
+      const summary = await importBooksToAccount(books);
+      showImportSummaryToast(summary);
     } catch (error) {
       console.error(error);
       showToast(error.message || 'Could not import that file.', 'error');
     }
   }
 
+  // Batch-import books to the authenticated account, then reload from the server as the source of truth.
   async function importBooksToAccount(books) {
     const normalizedBooks = books.map(normalizeImportedBook);
     const data = await apiPost('/api/books/import', { books: normalizedBooks });
@@ -976,12 +1053,14 @@
     renderAll();
     closeModal(elements.settingsModal);
 
-    const skipped = Number(data.skipped || 0);
-    if (skipped > 0) {
-      showToast(`Imported ${data.imported} books and skipped ${skipped}.`, 'success');
-    }
+    return {
+      imported: Number(data.imported || 0),
+      skipped: Number(data.skipped || 0),
+      duplicates: Number(data.duplicates || 0),
+    };
   }
 
+  // Offer one-time migration of the legacy localStorage library into the new account-backed model.
   function renderMigrationBanner() {
     if (!elements.migrationBanner || !elements.migrationCount) {
       return;
@@ -1010,11 +1089,11 @@
     }
 
     try {
-      await importBooksToAccount(legacyBooks);
+      const summary = await importBooksToAccount(legacyBooks);
       removeStoredItem(STORAGE_KEYS.legacyBooks);
       removeStoredItem(STORAGE_KEYS.migrationDismissed);
       renderMigrationBanner();
-      showToast('Your local library was imported into this account.', 'success');
+      showImportSummaryToast(summary);
     } catch (error) {
       console.error(error);
       showToast(error.message || 'Could not import your local library.', 'error');
@@ -1026,6 +1105,7 @@
     renderMigrationBanner();
   }
 
+  // Confirmation modal flow lets destructive actions register an async callback before the user approves.
   function requestConfirmation(message, callback) {
     state.pendingConfirm = callback;
     if (elements.confirmMessage) {
@@ -1058,6 +1138,7 @@
     }
   }
 
+  // Auth/session utility for signing out without leaving stale UI behind.
   async function logout() {
     try {
       await apiPost('/api/auth/logout');
@@ -1068,12 +1149,15 @@
     window.location.assign('/login');
   }
 
+  // Generic view helpers shared by the drawer, modals, sidebar, and list/grid toggle.
   function openModal(element) {
     element?.classList.add('open');
+    syncScrollLock();
   }
 
   function closeModal(element) {
     element?.classList.remove('open');
+    syncScrollLock();
   }
 
   function isOpen(element) {
@@ -1107,6 +1191,23 @@
     return state.books.find((book) => String(book.id) === String(state.selectedBookId)) || null;
   }
 
+  function focusExistingBook(bookId, message) {
+    closeAddDrawer();
+    openDetailModal(String(bookId));
+    showToast(message);
+  }
+
+  function syncScrollLock() {
+    const shouldLock =
+      isDrawerOpen() ||
+      isOpen(elements.detailModal) ||
+      isOpen(elements.settingsModal) ||
+      isOpen(elements.confirmModal);
+
+    document.body.classList.toggle('is-locked', shouldLock);
+  }
+
+  // Thin HTTP wrappers keep the rest of the UI code agnostic about fetch details.
   async function apiGet(url) {
     return apiRequest(url);
   }
@@ -1131,6 +1232,7 @@
     });
   }
 
+  // Centralized fetch behavior for JSON requests, auth redirects, and API error handling.
   async function apiRequest(url, options = {}) {
     const requestOptions = {
       method: options.method || 'GET',
@@ -1159,12 +1261,20 @@
         typeof payload === 'object' && payload && payload.error
           ? payload.error
           : 'Request failed.';
-      throw new Error(message);
+      const error = new Error(message);
+      error.status = response.status;
+
+      if (payload && typeof payload === 'object') {
+        Object.assign(error, payload);
+      }
+
+      throw error;
     }
 
     return payload;
   }
 
+  // Shared formatting, import normalization, and browser storage helpers.
   function sortBooks(books) {
     return [...books].sort((left, right) => {
       const leftDate = Date.parse(left.addedAt || '') || 0;
@@ -1203,6 +1313,78 @@
     return year;
   }
 
+  function normalizeDuplicateValue(value) {
+    return String(value ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+  }
+
+  function buildDuplicateKeys(book) {
+    const title = normalizeDuplicateValue(book?.title);
+    const author = normalizeDuplicateValue(book?.author);
+    const isbn = normalizeDuplicateValue(book?.isbn);
+
+    return {
+      isbn,
+      titleAuthor: title ? `${title}::${author}` : '',
+    };
+  }
+
+  function findDuplicateBook(candidate, options = {}) {
+    const ignoreId = options.ignoreId === undefined ? null : String(options.ignoreId);
+    const candidateKeys = buildDuplicateKeys(candidate);
+
+    if (!candidateKeys.isbn && !candidateKeys.titleAuthor) {
+      return null;
+    }
+
+    return (
+      state.books.find((book) => {
+        if (ignoreId !== null && String(book.id) === ignoreId) {
+          return false;
+        }
+
+        const bookKeys = buildDuplicateKeys(book);
+
+        if (candidateKeys.isbn && bookKeys.isbn && candidateKeys.isbn === bookKeys.isbn) {
+          return true;
+        }
+
+        return Boolean(
+          candidateKeys.titleAuthor &&
+            bookKeys.titleAuthor &&
+            candidateKeys.titleAuthor === bookKeys.titleAuthor
+        );
+      }) || null
+    );
+  }
+
+  function showImportSummaryToast(summary) {
+    const imported = Number(summary?.imported || 0);
+    const skipped = Number(summary?.skipped || 0);
+    const duplicates = Number(summary?.duplicates || 0);
+    const parts = [];
+
+    if (imported > 0) {
+      parts.push(`Imported ${imported} book${imported === 1 ? '' : 's'}`);
+    } else {
+      parts.push('No new books were imported');
+    }
+
+    if (duplicates > 0) {
+      parts.push(`skipped ${duplicates} duplicate${duplicates === 1 ? '' : 's'}`);
+    }
+
+    if (skipped > 0) {
+      parts.push(`ignored ${skipped} invalid entr${skipped === 1 ? 'y' : 'ies'}`);
+    }
+
+    const kind = imported > 0 ? 'success' : duplicates > 0 || skipped > 0 ? 'info' : 'error';
+    showToast(`${parts.join(', ')}.`, kind);
+  }
+
+  // Normalize different export/import shapes into the canonical book payload used by the API.
   function normalizeImportedBook(book) {
     const source = book && typeof book === 'object' ? book : {};
     const category = String(source.category ?? source.type ?? 'novel').trim().toLowerCase();
@@ -1269,6 +1451,7 @@
     }
   }
 
+  // Guard localStorage access so private browsing or browser settings do not break the app.
   function setStoredItem(key, value) {
     try {
       localStorage.setItem(key, value);
@@ -1285,6 +1468,7 @@
     }
   }
 
+  // Small presentation helpers for user feedback and safe HTML string building.
   function showToast(message, kind = 'info') {
     if (!elements.toast || !elements.toastMessage || !elements.toastIcon) {
       return;

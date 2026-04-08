@@ -3,10 +3,12 @@ const crypto = require('crypto');
 const config = require('../config');
 const { query } = require('../db');
 
+// Use a long random token as the session primary key so browser cookies never expose sequential IDs.
 function generateSessionId() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Insert a new session row and return the stored session metadata.
 async function createSession(userId) {
   const sessionId = generateSessionId();
   const expiresAt = new Date(Date.now() + config.sessionTtlMs);
@@ -23,6 +25,7 @@ async function createSession(userId) {
   return result.rows[0];
 }
 
+// Join sessions to users so auth middleware can recover the active account from a cookie value alone.
 async function getSessionUser(sessionId) {
   if (!sessionId) {
     return null;
@@ -61,6 +64,7 @@ async function getSessionUser(sessionId) {
   };
 }
 
+// Soft-delete a session instead of removing it entirely so logout is idempotent.
 async function revokeSession(sessionId) {
   if (!sessionId) {
     return;
@@ -77,6 +81,7 @@ async function revokeSession(sessionId) {
   );
 }
 
+// Return a copy so callers can set cookies without mutating the shared config object.
 function getSessionCookieOptions() {
   return { ...config.sessionCookieOptions };
 }

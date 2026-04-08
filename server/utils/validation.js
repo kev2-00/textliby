@@ -1,18 +1,23 @@
+// Keep accepted enum values centralized so routes and validators share the same rules.
 const ALLOWED_CATEGORIES = new Set(['textbook', 'novel']);
 const ALLOWED_STATUSES = new Set(['unread', 'reading', 'read']);
 
+// Safer own-property check for partial update payloads.
 function hasOwn(source, key) {
   return Object.prototype.hasOwnProperty.call(source, key);
 }
 
+// Normalize emails before validation, storage, and lookup.
 function normalizeEmail(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+// Basic email format validation for auth requests.
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// Enforce a minimum password policy before hashing.
 function validatePassword(password) {
   if (typeof password !== 'string' || password.length < 8) {
     return 'Password must be at least 8 characters long.';
@@ -21,10 +26,12 @@ function validatePassword(password) {
   return null;
 }
 
+// Trim user-entered strings and clamp them to the database-friendly maximum length.
 function cleanText(value, maxLength) {
   return String(value ?? '').trim().slice(0, maxLength);
 }
 
+// Convert year input into either a nullable integer or a validation error.
 function parseYear(value) {
   if (value === undefined || value === null || value === '') {
     return { value: null };
@@ -38,6 +45,7 @@ function parseYear(value) {
   return { value: year };
 }
 
+// Accept a simple whole-number rating within the supported five-star range.
 function parseRating(value) {
   if (value === undefined || value === null || value === '') {
     return { value: 0 };
@@ -51,6 +59,7 @@ function parseRating(value) {
   return { value: rating };
 }
 
+// Normalize and validate book payloads for both create and patch routes.
 function sanitizeBookInput(input, options = {}) {
   const partial = options.partial === true;
   const source = input && typeof input === 'object' ? input : {};
@@ -125,6 +134,7 @@ function sanitizeBookInput(input, options = {}) {
   return { value, errors };
 }
 
+// Reuse the single-book sanitizer for import batches and count skipped invalid records.
 function sanitizeImportBooks(input) {
   const items = Array.isArray(input) ? input : [];
   const books = [];

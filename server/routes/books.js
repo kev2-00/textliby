@@ -7,15 +7,18 @@ const {
   sanitizeImportBooks,
 } = require('../utils/validation');
 
+// All book operations live behind the authenticated API router.
 const router = express.Router();
 
 router.use(requireAuth);
 
+// Accept only positive integer route params for book records.
 function parseBookId(value) {
   const id = Number.parseInt(value, 10);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+// Convert snake_case database rows into the camelCase shape expected by the frontend.
 function mapBookRow(row) {
   return {
     id: Number(row.id),
@@ -34,6 +37,54 @@ function mapBookRow(row) {
   };
 }
 
+function normalizeDuplicateValue(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function buildDuplicateKeys(book) {
+  const title = normalizeDuplicateValue(book.title);
+  const author = normalizeDuplicateValue(book.author);
+  const isbn = normalizeDuplicateValue(book.isbn);
+
+  return {
+    isbn,
+    titleAuthor: title ? `${title}::${author}` : '',
+  };
+}
+
+function findDuplicateBookRow(rows, candidate, options = {}) {
+  const ignoreId = options.ignoreId === undefined ? null : Number(options.ignoreId);
+  const candidateKeys = buildDuplicateKeys(candidate);
+
+  if (!candidateKeys.isbn && !candidateKeys.titleAuthor) {
+    return null;
+  }
+
+  return (
+    rows.find((row) => {
+      if (ignoreId !== null && Number(row.id) === ignoreId) {
+        return false;
+      }
+
+      const rowKeys = buildDuplicateKeys(row);
+
+      if (candidateKeys.isbn && rowKeys.isbn && candidateKeys.isbn === rowKeys.isbn) {
+        return true;
+      }
+
+      return Boolean(
+        candidateKeys.titleAuthor &&
+          rowKeys.titleAuthor &&
+          candidateKeys.titleAuthor === rowKeys.titleAuthor
+      );
+    }) || null
+  );
+}
+
+// Return the current user's full library, newest books first.
 router.get('/', async (req, res, next) => {
   try {
     const result = await query(
@@ -52,12 +103,30 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// Insert a single validated book record for the signed-in user.
 router.post('/', async (req, res, next) => {
   try {
     const { value, errors } = sanitizeBookInput(req.body);
 
     if (errors.length > 0) {
       return res.status(400).json({ error: errors[0] });
+    }
+
+    const existingBooks = await query(
+      `
+        SELECT id, title, author, isbn
+        FROM books
+        WHERE user_id = $1
+      `,
+      [req.user.id]
+    );
+    const duplicate = findDuplicateBookRow(existingBooks.rows, value);
+
+    if (duplicate) {
+      return res.status(409).json({
+        error: 'That book is already in your library.',
+        duplicateId: Number(duplicate.id),
+      });
     }
 
     const result = await query(
@@ -99,6 +168,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// Support partial updates by building the SQL SET clause from only the provided fields.
 router.patch('/:id', async (req, res, next) => {
   try {
     const bookId = parseBookId(req.params.id);
@@ -162,6 +232,7 @@ router.patch('/:id', async (req, res, next) => {
   }
 });
 
+// Remove a single book while ensuring users can delete only their own records.
 router.delete('/:id', async (req, res, next) => {
   try {
     const bookId = parseBookId(req.params.id);
@@ -189,8 +260,9 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
+// Import a batch of books inside one transaction so the account update is consistent.
 router.post('/import', async (req, res, next) => {
-  const source = Array.isArray(req.body) ? req.body : req.body.books;
+  const source = Array.isArray(req.body) ? req.body : req.body?.books;
 
   if (!Array.isArray(source)) {
     return res.status(400).json({ error: 'Import body must be an array of books.' });
@@ -201,11 +273,28 @@ router.post('/import', async (req, res, next) => {
 
   try {
     let imported = 0;
+    let duplicates = 0;
 
     await client.query('BEGIN');
 
+    const existingBooks = await client.query(
+      `
+        SELECT id, title, author, isbn
+        FROM books
+        WHERE user_id = $1
+      `,
+      [req.user.id]
+    );
+    const knownBooks = [...existingBooks.rows];
+
     for (const book of books) {
-      await client.query(
+      const duplicate = findDuplicateBookRow(knownBooks, book);
+      if (duplicate) {
+        duplicates += 1;
+        continue;
+      }
+
+      const insertedBook = await client.query(
         `
           INSERT INTO books (
             user_id,
@@ -221,6 +310,7 @@ router.post('/import', async (req, res, next) => {
             year
           )
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          RETURNING id, title, author, isbn
         `,
         [
           req.user.id,
@@ -236,12 +326,13 @@ router.post('/import', async (req, res, next) => {
           book.year,
         ]
       );
+      knownBooks.push(insertedBook.rows[0]);
 
       imported += 1;
     }
 
     await client.query('COMMIT');
-    res.json({ imported, skipped });
+    res.json({ imported, skipped, duplicates });
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     next(error);

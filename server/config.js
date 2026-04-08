@@ -1,13 +1,16 @@
 const path = require('path');
 const dotenv = require('dotenv');
 
+// Load environment variables before any config values are derived.
 dotenv.config({ quiet: true });
 
+// Read optional values safely so downstream config code can treat missing vars as empty strings.
 function getOptionalEnv(name) {
   const value = process.env[name];
   return typeof value === 'string' ? value.trim() : '';
 }
 
+// Stop startup immediately when a required setting is missing.
 function getRequiredEnv(name) {
   const value = getOptionalEnv(name);
   if (!value) {
@@ -16,6 +19,7 @@ function getRequiredEnv(name) {
   return value;
 }
 
+// Parse numeric environment variables once so every caller gets the same validation behavior.
 function getIntegerEnv(name, fallback) {
   const value = process.env[name];
   if (!value) return fallback;
@@ -28,6 +32,7 @@ function getIntegerEnv(name, fallback) {
   return parsed;
 }
 
+// Support Railway-style discrete Postgres variables when a full connection URL is not provided.
 function buildDatabaseUrlFromParts() {
   const host = getOptionalEnv('PGHOST');
   const port = getOptionalEnv('PGPORT');
@@ -46,6 +51,7 @@ function buildDatabaseUrlFromParts() {
   return `postgresql://${encodedUser}:${encodedPassword}@${host}:${port}/${encodedDatabase}`;
 }
 
+// Prefer explicit URLs first, then fall back to rebuilding one from provider-specific variables.
 function getDatabaseUrl() {
   return (
     getOptionalEnv('DATABASE_URL') ||
@@ -59,6 +65,7 @@ function getDatabaseUrl() {
   );
 }
 
+// Derive environment-aware runtime values once and export them for the rest of the application.
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProduction = nodeEnv === 'production';
 const sessionTtlDays = getIntegerEnv('SESSION_TTL_DAYS', 30);

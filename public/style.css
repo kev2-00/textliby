@@ -5,6 +5,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0;}
 
 :root {
+  /* Shared design tokens for the library dashboard theme. */
   /* Palette */
   --bg:          #0c1810;
   --bg-sidebar:  #0a1510;
@@ -52,12 +53,17 @@ html {height: 100%;}
 body {
     display: flex;
     min-height: 100vh;
+    min-height: 100dvh;
     background: var(--bg);
     color: var(--parchment);
     font-family: var(--font-body);
     font-size: 10.5px;
     line-height: 1.5;
     overflow-x: hidden;
+}
+
+body.is-locked {
+    overflow: hidden;
 }
 .grain {
     position: fixed;
@@ -68,14 +74,17 @@ body {
     opacity: 0.6;
 }
 
+/* Sidebar layout, navigation counts, and account tools. */
 .sidebar {
     position: fixed; top: 0; left: 0;
     width: var(--sidebar-w);
     height: 100vh;
+    height: 100dvh;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
     padding: 0 0 20px;
+    padding: 0 0 calc(20px + env(safe-area-inset-bottom, 0px));
     z-index: 200;
     transition: transform 0.3s cubic-bezier(0.4, 0, 2, 1);
  }
@@ -186,6 +195,7 @@ body {
  .settings-trigger:hover { border-color: var(--border-hi); color: var(--muted); }
 
  /* Main Content */
+ /* Main shell that offsets the fixed sidebar and hosts the top navigation. */
  .layout {
    margin-left: var(--sidebar-w);
    flex: 1; display: flex; flex-direction: column;
@@ -238,6 +248,7 @@ body {
 .topbar-right { margin-left: auto; }
 
 /* ── BUTTONS ─────────────────────────────────── */
+/* Reusable buttons that power drawers, modals, and settings actions. */
 .btn {
   display: inline-flex; align-items: center; gap: 7px;
   border: none; border-radius: var(--radius);
@@ -274,6 +285,7 @@ body {
 }
 
 /* ── MAIN CONTENT ────────────────────────────── */
+/* Main content area plus the migration banner for older local-only libraries. */
 .main-content {
   padding: 28px 28px 80px;
   flex: 1;
@@ -317,6 +329,7 @@ body {
 }
 
 /* ── STATS ROW ───────────────────────────────── */
+/* Dashboard counters that summarize the current library state. */
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -346,6 +359,7 @@ body {
 }
 
 /* ── SECTION HEADER ──────────────────────────── */
+/* Header row with the active filter title and the grid/list toggle. */
 .section-header {
   display: flex; align-items: center;
   justify-content: space-between;
@@ -372,6 +386,7 @@ body {
 }
 
 /* ── BOOK GRID ───────────────────────────────── */
+/* Grid/list container that the client script repopulates after every render pass. */
 .book-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
@@ -384,6 +399,7 @@ body {
 }
 
 /* ── BOOK CARD (grid) ────────────────────────── */
+/* Default grid cards emphasize cover art and quick status/category recognition. */
 .book-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -453,6 +469,7 @@ body {
 }
 
 /* ── BOOK CARD (list) ────────────────────────── */
+/* Alternate list cards trade cover size for denser metadata. */
 .book-card.list-card {
   display: flex; align-items: center; gap: 14px;
   padding: 12px 16px; border-radius: var(--radius);
@@ -492,6 +509,7 @@ body {
 .list-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
 /* ── BADGES ──────────────────────────────────── */
+/* Badge colors visually separate category and reading-status information. */
 .badge {
   display: inline-block;
   padding: 3px 9px; border-radius: 20px;
@@ -518,6 +536,7 @@ body {
 .stars .dim { color: var(--border); }
 
 /* ── EMPTY STATE ─────────────────────────────── */
+/* Empty-state treatment guides the user toward adding books or changing filters. */
 .empty-state {
   text-align: center; padding: 80px 40px;
   color: var(--muted);
@@ -532,6 +551,7 @@ body {
 .empty-state strong { color: var(--brass-light); }
 
 /* ── OVERLAY & DRAWER ────────────────────────── */
+/* Overlay and drawer styles power the add-book workflow. */
 .overlay {
   position: fixed; inset: 0; z-index: 299;
   background: rgba(0,0,0,.6);
@@ -544,6 +564,7 @@ body {
 .drawer {
   position: fixed; top: 0; right: 0;
   width: 440px; max-width: 100%; height: 100vh;
+  height: 100dvh;
   background: var(--bg-card);
   border-left: 1px solid var(--border);
   z-index: 300;
@@ -551,12 +572,16 @@ body {
   transform: translateX(100%);
   transition: transform .35s cubic-bezier(.4,0,.2,1);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .drawer.open { transform: translateX(0); }
 
 .drawer-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 24px 16px;
+  padding: calc(22px + env(safe-area-inset-top, 0px)) 24px 16px;
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0;
   background: var(--bg-card); z-index: 1;
@@ -621,6 +646,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 .field-hint code { font-size: 11px; background: var(--bg-row); padding: 1px 5px; border-radius: 3px; }
 
 /* ── PILL SELECT ─────────────────────────────── */
+/* Pill controls are reused for category selection and reading-status editing. */
 .pill-select {
   display: flex; gap: 4px;
   background: var(--bg-input);
@@ -641,6 +667,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 }
 
 /* ── GOOGLE BOOKS LOADING & RESULTS ──────────── */
+/* Search feedback and result cards for Google Books lookups. */
 .gb-loading {
   display: flex; align-items: center; gap: 12px;
   padding: 20px 24px; color: var(--muted); font-size: 13px;
@@ -675,6 +702,17 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
   box-shadow: 0 6px 20px rgba(0,0,0,.4);
 }
 
+.gb-card.is-duplicate {
+  background: rgba(107,148,113,.08);
+  border-color: rgba(107,148,113,.28);
+}
+
+.gb-card.is-duplicate:hover {
+  transform: none;
+  border-color: rgba(107,148,113,.28);
+  box-shadow: none;
+}
+
 .gb-card-thumb {
   width: 100%; height: 120px;
   object-fit: cover; display: block;
@@ -705,6 +743,8 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
   margin-top: 6px;
 }
 
+.gb-add-hint.duplicate { color: var(--sage); }
+
 /* ── DRAWER DIVIDER ──────────────────────────── */
 .drawer-divider {
   display: flex; align-items: center; gap: 12px;
@@ -717,6 +757,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 }
 
 /* ── MANUAL FORM ─────────────────────────────── */
+/* Manual entry form used when Google Books does not have the desired title. */
 .manual-form { padding: 16px 24px 28px; }
 
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
@@ -726,6 +767,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 .from-group .field-label { margin-bottom: 6px; }
 
 /* ── MODAL ───────────────────────────────────── */
+/* Shared modal styling for book details, settings, and confirmations. */
 .modal-bg,
 .model-bg {
   position: fixed; inset: 0; z-index: 400;
@@ -742,11 +784,13 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
   border: 1px solid var(--border-hi);
   border-radius: var(--radius-xl);
   max-width: 640px; width: 100%;
-  max-height: 90vh; overflow-y: auto;
+  max-height: 90vh;
+  max-height: min(90vh, calc(100dvh - 40px)); overflow-y: auto;
   box-shadow: var(--shadow-lg);
   display: flex; gap: 0;
   animation: popIn .28s cubic-bezier(.4,0,.2,1) both;
   position: relative;
+  overscroll-behavior: contain;
 }
 
 @keyframes popIn {
@@ -762,6 +806,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 
 .modal-close {
   position: absolute; top: 14px; right: 16px;
+  top: calc(14px + env(safe-area-inset-top, 0px));
   background: transparent; border: none;
   color: var(--muted); font-size: 15px;
   cursor: pointer; padding: 4px 7px;
@@ -880,6 +925,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 }
 
 /* ── TOAST ───────────────────────────────────── */
+/* Toast notification anchored to the lower-right corner. */
 #toast {
   position: fixed; bottom: 24px; right: 24px; z-index: 9999;
   background: var(--bg-card);
@@ -902,6 +948,7 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
 
 /* ── RESPONSIVE ──────────────────────────────── */
+/* Responsive breakpoints keep the fixed-sidebar layout usable on tablets and phones. */
 @media (max-width: 900px) {
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
@@ -919,29 +966,89 @@ textarea.drawer-input { resize: vertical; min-height: 72px; }
   .topbar { padding: 0 16px; }
   .main-content { padding: 20px 16px 60px; }
 
+  .topbar-search input,
+  .drawer-input {
+    font-size: 16px;
+  }
+
   .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
 
-  .modal { flex-direction: column; max-height: 96vh; }
+  .modal-bg { padding: 12px; }
+  .modal,
+  .modal-sm {
+    max-height: 96vh;
+    max-height: calc(100dvh - 24px);
+  }
+  .modal { flex-direction: column; }
   .modal-cover-wrap {
     width: 100%; height: 220px;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
   .modal-cover-placeholder { min-height: 220px; }
   .modal-info { grid-template-columns: 1fr 1fr; }
+  .modal-body {
+    padding: 20px 16px 20px;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-sm {
+    padding: 22px 18px 18px;
+    padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
 
   .drawer { width: 100%; }
+  .drawer-header {
+    padding: 18px 16px 14px;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 14px;
+  }
+  .drawer-search-row {
+    flex-direction: column;
+    padding: 16px 16px 0;
+  }
+  .drawer-search-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .drawer-category-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px 16px 0;
+  }
+  .gb-loading,
+  .gb-results,
+  .drawer-divider,
+  .manual-form {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .pill-select {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .pill-opt {
+    flex: 1 1 0;
+    text-align: center;
+  }
   .form-row { grid-template-columns: 1fr; }
   .migration-banner { flex-direction: column; align-items: stretch; }
   .migration-actions { justify-content: stretch; }
   .migration-actions .btn,
   .migration-actions .btn-ghost-sm { width: 100%; justify-content: center; }
   .settings-grid { grid-template-columns: 1fr; }
-  .modal-btn-row { flex-wrap: wrap; }
+  .modal-btn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .modal-btn-row .btn,
-  .modal-btn-row .btn-ghost-sm { flex: 1 1 100%; justify-content: center; }
+  .modal-btn-row .btn-ghost-sm {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 480px) {
   .stats-row { grid-template-columns: 1fr 1fr; }
   .book-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .gb-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

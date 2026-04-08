@@ -4,8 +4,10 @@ const rateLimit = require('express-rate-limit');
 const config = require('../config');
 const requireAuth = require('../middleware/requireAuth');
 
+// Keep external catalog lookups isolated from local book CRUD routes.
 const router = express.Router();
 
+// Prevent a single user from hammering the Google Books proxy endpoint.
 const searchLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
@@ -16,6 +18,7 @@ const searchLimiter = rateLimit({
 
 router.use(requireAuth);
 
+// Prefer ISBN-13 when present, otherwise fall back to the first identifier the API returned.
 function extractIsbn(industryIdentifiers = []) {
   const match =
     industryIdentifiers.find((item) => item.type === 'ISBN_13') ||
@@ -24,6 +27,7 @@ function extractIsbn(industryIdentifiers = []) {
   return match ? match.identifier : '';
 }
 
+// Proxy Google Books searches so the browser never needs direct access to the API key.
 router.get('/search', searchLimiter, async (req, res, next) => {
   try {
     const query = String(req.query.q || '').trim();

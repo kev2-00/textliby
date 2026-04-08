@@ -1,5 +1,12 @@
+# Local dependencies.
 node_modules/
+
+# Local-only environment files.
 .env
+
+# Runtime and build output.
 *.log
 dist/
+
+# OS and browser artifacts.
 .DS_Storecookies.txt

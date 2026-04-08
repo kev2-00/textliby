@@ -16,8 +16,10 @@ const {
   getSessionCookieOptions,
 } = require('../utils/sessions');
 
+// Keep authentication concerns isolated inside their own router.
 const router = express.Router();
 
+// Slow down brute-force attempts against login and signup endpoints.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -26,6 +28,7 @@ const authLimiter = rateLimit({
   message: { error: 'Too many authentication attempts. Please try again later.' },
 });
 
+// Mirror the login cookie settings so logout and session cleanup target the right cookie shape.
 const clearCookieOptions = {
   httpOnly: true,
   sameSite: config.sessionCookieOptions.sameSite,
@@ -33,6 +36,7 @@ const clearCookieOptions = {
   path: config.sessionCookieOptions.path,
 };
 
+// Return only safe user fields to the browser.
 function serializeUser(user) {
   return {
     id: user.id,
@@ -40,6 +44,7 @@ function serializeUser(user) {
   };
 }
 
+// Create an account, hash the password, and immediately sign the new user in.
 router.post('/signup', authLimiter, async (req, res, next) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -79,6 +84,7 @@ router.post('/signup', authLimiter, async (req, res, next) => {
   }
 });
 
+// Verify credentials and issue a fresh session cookie for the browser.
 router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const email = normalizeEmail(req.body.email);
@@ -117,6 +123,7 @@ router.post('/login', authLimiter, async (req, res, next) => {
   }
 });
 
+// Revoke the current session server-side and clear the browser cookie.
 router.post('/logout', async (req, res, next) => {
   try {
     const sessionId = req.cookies?.[config.sessionCookieName];
@@ -131,6 +138,7 @@ router.post('/logout', async (req, res, next) => {
   }
 });
 
+// Let the frontend bootstrap itself by asking who is currently signed in.
 router.get('/me', async (req, res, next) => {
   try {
     const sessionId = req.cookies?.[config.sessionCookieName];
